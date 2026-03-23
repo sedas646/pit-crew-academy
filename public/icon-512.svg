@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="64" fill="#0a0e1a"/>
+  <!-- Checkered flag pattern -->
+  <g transform="translate(256,120)">
+    <!-- Flag pole -->
+    <rect x="-5" y="-20" width="10" height="240" fill="#666" rx="4"/>
+    <!-- Flag body -->
+    <g transform="translate(-110,-20)">
+      <rect width="160" height="112" fill="#dc2626" rx="6"/>
+      <!-- Checkered squares -->
+      <rect x="0" y="0" width="26.67" height="28" fill="#fff"/>
+      <rect x="53.33" y="0" width="26.67" height="28" fill="#fff"/>
+      <rect x="106.67" y="0" width="26.67" height="28" fill="#fff"/>
+      <rect x="26.67" y="28" width="26.67" height="28" fill="#fff"/>
+      <rect x="80" y="28" width="26.67" height="28" fill="#fff"/>
+      <rect x="133.33" y="28" width="26.67" height="28" fill="#fff"/>
+      <rect x="0" y="56" width="26.67" height="28" fill="#fff"/>
+      <rect x="53.33" y="56" width="26.67" height="28" fill="#fff"/>
+      <rect x="106.67" y="56" width="26.67" height="28" fill="#fff"/>
+      <rect x="26.67" y="84" width="26.67" height="28" fill="#fff"/>
+      <rect x="80" y="84" width="26.67" height="28" fill="#fff"/>
+      <rect x="133.33" y="84" width="26.67" height="28" fill="#fff"/>
+    </g>
+  </g>
+  <!-- PCA Text -->
+  <text x="256" y="410" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="96" fill="#ffffff" letter-spacing="10">PCA</text>
+  <!-- Accent line -->
+  <rect x="100" y="430" width="312" height="8" rx="4" fill="#dc2626"/>
+</svg>

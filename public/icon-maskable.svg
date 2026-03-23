@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Maskable icons need safe zone: content within center 80% (51.2px padding) -->
+  <rect width="512" height="512" fill="#0a0e1a"/>
+  <!-- Checkered flag pattern - scaled to safe zone -->
+  <g transform="translate(256,140)">
+    <!-- Flag pole -->
+    <rect x="-4" y="-16" width="8" height="190" fill="#666" rx="3"/>
+    <!-- Flag body -->
+    <g transform="translate(-85,-16)">
+      <rect width="125" height="88" fill="#dc2626" rx="5"/>
+      <!-- Checkered squares -->
+      <rect x="0" y="0" width="20.83" height="22" fill="#fff"/>
+      <rect x="41.67" y="0" width="20.83" height="22" fill="#fff"/>
+      <rect x="83.33" y="0" width="20.83" height="22" fill="#fff"/>
+      <rect x="20.83" y="22" width="20.83" height="22" fill="#fff"/>
+      <rect x="62.5" y="22" width="20.83" height="22" fill="#fff"/>
+      <rect x="104.17" y="22" width="20.83" height="22" fill="#fff"/>
+      <rect x="0" y="44" width="20.83" height="22" fill="#fff"/>
+      <rect x="41.67" y="44" width="20.83" height="22" fill="#fff"/>
+      <rect x="83.33" y="44" width="20.83" height="22" fill="#fff"/>
+      <rect x="20.83" y="66" width="20.83" height="22" fill="#fff"/>
+      <rect x="62.5" y="66" width="20.83" height="22" fill="#fff"/>
+      <rect x="104.17" y="66" width="20.83" height="22" fill="#fff"/>
+    </g>
+  </g>
+  <!-- PCA Text -->
+  <text x="256" y="390" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="80" fill="#ffffff" letter-spacing="8">PCA</text>
+  <!-- Accent line -->
+  <rect x="120" y="406" width="272" height="6" rx="3" fill="#dc2626"/>
+</svg>
