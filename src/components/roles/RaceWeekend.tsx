@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { tracks, getTrack } from '../../data/tracks';
 import { simulateLap, defaultSetup, findOptimalSetup, getSetupRecommendations, type HintDirection } from '../../utils/simulation';
@@ -46,7 +46,7 @@ export default function RaceWeekend() {
   const track = getTrack(trackId);
 
   // Compute optimal when track changes
-  const computeOptimal = useCallback(() => {
+  useEffect(() => {
     if (!optimalData || optimalData.setup.trackId !== trackId) {
       setOptimalData(findOptimalSetup(track));
     }
