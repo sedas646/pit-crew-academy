@@ -222,11 +222,14 @@ export default function RaceEngineer() {
                   <div className="bg-slate-900 rounded-lg p-3 text-center">
                     <div className="text-xs text-slate-500">Lap Time</div>
                     <div className="text-2xl font-mono font-black text-white">{result.totalTime.toFixed(3)}s</div>
-                    {optimal && (
-                      <div className={`text-xs mt-1 ${result.totalTime <= optimal.lapTime + 0.3 ? 'text-accent-green' : result.totalTime <= optimal.lapTime + 1 ? 'text-accent-amber' : 'text-racing-red'}`}>
-                        {result.totalTime <= optimal.lapTime + 0.3 ? '🏆' : result.totalTime <= optimal.lapTime + 1 ? '👍' : '📈'} Gap: +{round(result.totalTime - optimal.lapTime, 3)}s
-                      </div>
-                    )}
+                    {optimal && (() => {
+                      const g = result.totalTime - optimal.lapTime;
+                      return (
+                        <div className={`text-xs mt-1 font-bold ${g <= 0.3 ? 'text-accent-green' : g <= 1.0 ? 'text-accent-amber' : g <= 3.0 ? 'text-orange-400' : 'text-racing-red'}`}>
+                          {g <= 0.3 ? '🏆 On the limit!' : g <= 1.0 ? '🔥 Close — small tweaks needed' : g <= 3.0 ? '⚡ Room to improve' : '🔧 Keep tuning!'}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="bg-slate-900 rounded-lg p-3 text-center">
                     <div className="text-xs text-slate-500">Top Speed</div>

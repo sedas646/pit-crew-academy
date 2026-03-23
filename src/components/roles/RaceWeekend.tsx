@@ -629,8 +629,8 @@ export default function RaceWeekend() {
                     <div className="relative h-3 bg-slate-800 rounded-full overflow-hidden mb-1">
                       <div className="absolute inset-0 rounded-full bg-accent-green" style={{ width: `${pct}%` }} />
                     </div>
-                    <div className={`text-center text-xs font-mono font-bold ${gap <= 0.3 ? 'text-accent-green' : gap <= 1.0 ? 'text-accent-amber' : 'text-racing-red'}`}>
-                      {gap <= 0 ? 'On target!' : gap <= 0.3 ? 'Almost perfect!' : gap <= 1.0 ? `${gap}s to find — keep tuning!` : `${gap}s off — check your setup arrows`}
+                    <div className={`text-center text-xs font-bold ${gap <= 0.3 ? 'text-accent-green' : gap <= 1.0 ? 'text-accent-amber' : gap <= 3.0 ? 'text-orange-400' : 'text-racing-red'}`}>
+                      {gap <= 0 ? '🏆 On the limit!' : gap <= 0.3 ? '🏆 Almost perfect!' : gap <= 1.0 ? '🔥 Close — small tweaks needed' : gap <= 3.0 ? '⚡ Room to improve' : '🔧 Keep tuning — follow the arrows'}
                     </div>
                   </div>
                 );
