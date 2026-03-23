@@ -310,7 +310,7 @@ export default function RaceWeekend() {
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-white font-bold">🎯 Engineer Analysis</h4>
                       <span className={`text-xs font-bold px-2 py-1 rounded ${gap <= 0.5 ? 'bg-accent-green/20 text-accent-green' : gap <= 1.5 ? 'bg-accent-amber/20 text-accent-amber' : gap <= 3.0 ? 'bg-orange-500/20 text-orange-400' : 'bg-racing-red/20 text-racing-red'}`}>
-                        {gap <= 0.5 ? '🏆 On the Limit' : gap <= 1.5 ? '🔥 Close' : gap <= 3.0 ? '⚡ Work to Do' : '🔧 Big Changes Needed'}
+                        +{gap}s to optimal
                       </span>
                     </div>
 
@@ -630,7 +630,7 @@ export default function RaceWeekend() {
                       <div className="absolute inset-0 rounded-full bg-accent-green" style={{ width: `${pct}%` }} />
                     </div>
                     <div className={`text-center text-xs font-bold ${gap <= 0.3 ? 'text-accent-green' : gap <= 1.0 ? 'text-accent-amber' : gap <= 3.0 ? 'text-orange-400' : 'text-racing-red'}`}>
-                      {gap <= 0 ? '🏆 On the limit!' : gap <= 0.3 ? '🏆 Almost perfect!' : gap <= 1.0 ? '🔥 Close — small tweaks needed' : gap <= 3.0 ? '⚡ Room to improve' : '🔧 Keep tuning — follow the arrows'}
+                      {gap <= 0 ? '🏆 On the limit!' : `+${gap}s to optimal`}
                     </div>
                   </div>
                 );

@@ -223,10 +223,10 @@ export default function RaceEngineer() {
                     <div className="text-xs text-slate-500">Lap Time</div>
                     <div className="text-2xl font-mono font-black text-white">{result.totalTime.toFixed(3)}s</div>
                     {optimal && (() => {
-                      const g = result.totalTime - optimal.lapTime;
+                      const g = round(result.totalTime - optimal.lapTime, 3);
                       return (
                         <div className={`text-xs mt-1 font-bold ${g <= 0.3 ? 'text-accent-green' : g <= 1.0 ? 'text-accent-amber' : g <= 3.0 ? 'text-orange-400' : 'text-racing-red'}`}>
-                          {g <= 0.3 ? '🏆 On the limit!' : g <= 1.0 ? '🔥 Close — small tweaks needed' : g <= 3.0 ? '⚡ Room to improve' : '🔧 Keep tuning!'}
+                          {g <= 0.3 ? '🏆' : g <= 1.0 ? '🔥' : g <= 3.0 ? '⚡' : '🔧'} +{g}s to optimal
                         </div>
                       );
                     })()}
@@ -314,7 +314,7 @@ export default function RaceEngineer() {
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-white font-bold">🎯 Setup Coach</h3>
                       <span className={`text-xs font-bold px-2 py-1 rounded ${gap <= 0.3 ? 'bg-accent-green/20 text-accent-green' : gap <= 1.0 ? 'bg-accent-amber/20 text-accent-amber' : gap <= 3.0 ? 'bg-orange-500/20 text-orange-400' : 'bg-racing-red/20 text-racing-red'}`}>
-                        {gap <= 0.3 ? '🏆 On the Limit' : gap <= 1.0 ? '🔥 Close' : gap <= 3.0 ? '⚡ Work to Do' : '🔧 Big Changes Needed'}
+                        +{gap}s to optimal
                       </span>
                     </div>
 
