@@ -161,7 +161,7 @@ const CATEGORIES = [
 ];
 
 export default function CarBuilder() {
-  const { state, dispatch } = useApp();
+  const { dispatch } = useApp();
   const [components, setComponents] = useState<CarComponent[]>(initialComponents);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');

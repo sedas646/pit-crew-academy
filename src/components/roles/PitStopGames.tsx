@@ -545,7 +545,7 @@ function MatchPairsGame({ addXP }: { addXP: (n: number) => void }) {
   const [elapsed, setElapsed] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
   const lockRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const initGame = useCallback((si: number) => {
     const pairs = MATCH_PAIRS_SETS[si];

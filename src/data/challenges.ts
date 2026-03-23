@@ -125,8 +125,6 @@ export const challenges: Challenge[] = [
     correctAnswer: 'B 0.3',
     explanation: 'A total: 28.5 + 32.1 + 26.8 = 87.4s. B total: 29.1 + 31.4 + 27.2 = 87.7s... Wait! A = 87.4s, B = 87.7s. A is 0.3s faster? Let me recalculate. Hmm - actually check: A = 87.4, B = 87.7. But look closer: B is faster in Sector 2 by 0.7s! The ideal lap combines best sectors: 28.5 + 31.4 + 26.8 = 86.7s.',
     options: ['A 0.3', 'B 0.3', 'B 0.7', 'A 0.7'],
-    correctAnswer: 'A 0.3',
-    explanation: 'A total: 87.4s vs B total: 87.7s. A is faster by 0.3s overall. But the interesting bit: B is 0.7s faster in Sector 2! The theoretical best lap takes each driver\'s best sector: 28.5 + 31.4 + 26.8 = 86.7s. This is how real engineers find where to improve.',
   },
   {
     id: 'da-2',
@@ -164,8 +162,6 @@ export const challenges: Challenge[] = [
     correctAnswer: '45',
     explanation: 'Total time lost from degradation over N laps = 0.5 × (1+2+...+N)/N per lap is a simplification. Actually, if each subsequent lap is 0.5s slower: after N laps you\'ve lost 0.5+1.0+1.5+...+0.5N = 0.5×N×(N+1)/2 total. Setting 0.5×N×(N+1)/2 = 22.5 → N(N+1) = 90 → N ≈ 9. But the question asks about constant 0.5s/lap loss, so: N × 0.5 > 22.5 → N > 45 laps.',
     options: ['30 laps', '45 laps', '22 laps', '15 laps'],
-    correctAnswer: '45 laps',
-    explanation: 'If you lose 0.5s every single lap, you need 22.5/0.5 = 45 laps before the cumulative loss exceeds the pit stop cost. But in reality, degradation gets worse each lap (non-linear), so the real answer is much sooner! This is the basic math that strategy engineers build from.',
   },
   {
     id: 'se-2',

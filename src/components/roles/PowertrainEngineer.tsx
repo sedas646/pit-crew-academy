@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
-import { engineTorque, enginePower, powerFromTorque, kineticEnergy, round, msToKph, kphToMs } from '../../utils/physics';
+import { engineTorque, enginePower, kineticEnergy, round, kphToMs } from '../../utils/physics';
 import { getChallengesByRole } from '../../data/challenges';
 import { XP_REWARDS } from '../../utils/xp';
 import Chart from '../shared/Chart';

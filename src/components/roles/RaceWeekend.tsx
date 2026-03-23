@@ -32,7 +32,7 @@ const SESSION_INFO: Record<Session, { title: string; icon: string; desc: string 
 const SESSION_ORDER: Session[] = ['briefing', 'fp1', 'fp2', 'qualifying', 'race', 'debrief'];
 
 export default function RaceWeekend() {
-  const { state, dispatch } = useApp();
+  const { dispatch } = useApp();
   const [trackId, setTrackId] = useState('silverstone');
   const [session, setSession] = useState<Session>('briefing');
   const [setup, setSetup] = useState<CarSetup>(() => defaultSetup('silverstone'));
@@ -137,7 +137,6 @@ export default function RaceWeekend() {
   const bestLap = lapLog.length > 0 ? Math.min(...lapLog.map(l => l.lapTime)) : null;
   const fpLaps = lapLog.filter(l => l.session.startsWith('FP'));
   const qualLaps = lapLog.filter(l => l.session.startsWith('Q'));
-  const raceLaps = lapLog.filter(l => l.session === 'Race');
 
   return (
     <div className="p-6">
