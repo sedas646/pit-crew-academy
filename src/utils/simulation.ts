@@ -90,11 +90,7 @@ export function simulateLap(setup: CarSetup, track: Track): SimulationResult {
   if (setup.ersDeployMode >= 4) feedback.push('High ERS deploy - great straight speed but watch energy management');
   if (suspFactor < 0.97) feedback.push('Suspension is too stiff or too soft - find the middle ground');
 
-  const timeDiff = totalTime - track.referenceTime;
-  if (timeDiff < 0) feedback.push(`Incredible! ${round(Math.abs(timeDiff), 3)}s faster than reference!`);
-  else if (timeDiff < 1) feedback.push(`Close to reference time - just ${round(timeDiff, 3)}s off!`);
-  else if (timeDiff < 3) feedback.push(`${round(timeDiff, 3)}s off the pace - keep tuning!`);
-  else feedback.push(`${round(timeDiff, 3)}s off the pace - try adjusting your aero and tire setup`);
+  // Timing gap feedback is handled by the Setup Coach section instead
 
   return {
     totalTime,
@@ -181,21 +177,35 @@ function simulateLapDeterministic(setup: CarSetup, track: Track): { totalTime: n
   return { totalTime, sectorTimes };
 }
 
-/** Generate specific recommendations comparing current setup to optimal */
+/** Direction hint for a parameter: how far off and which way */
+export type HintDirection = 'up-big' | 'up-small' | 'good' | 'down-small' | 'down-big';
+
+export interface ParamHint {
+  param: string;
+  direction: HintDirection;
+  reason: string;
+  teachingTip: string;
+}
+
+/** Generate directional coaching hints — no exact values revealed */
 export function getSetupRecommendations(
   current: CarSetup,
   optimal: CarSetup,
   currentTime: number,
   optimalTime: number,
   track: Track
-): { recommendations: string[]; paramHints: { param: string; current: number; optimal: number; unit: string; impact: string }[] } {
+): { recommendations: string[]; paramHints: ParamHint[] } {
   const recommendations: string[] = [];
-  const paramHints: { param: string; current: number; optimal: number; unit: string; impact: string }[] = [];
+  const paramHints: ParamHint[] = [];
   const gap = round(currentTime - optimalTime, 3);
 
-  // Aero analysis
-  const frontDiff = current.frontWingAngle - optimal.frontWingAngle;
-  const rearDiff = current.rearWingAngle - optimal.rearWingAngle;
+  const hint = (diff: number, threshold: number): HintDirection => {
+    if (Math.abs(diff) <= threshold) return 'good';
+    if (diff > threshold * 3) return 'down-big';
+    if (diff > threshold) return 'down-small';
+    if (diff < -threshold * 3) return 'up-big';
+    return 'up-small';
+  };
 
   // Count track character
   const straights = track.sectors.filter(s => s.type === 'straight').length;
@@ -203,72 +213,104 @@ export function getSetupRecommendations(
   const fastCorners = track.sectors.filter(s => s.type === 'fast-corner').length;
   const isHighDF = (slowCorners + fastCorners) > straights;
 
-  if (Math.abs(frontDiff) >= 2) {
-    const dir = frontDiff > 0 ? 'Reduce' : 'Increase';
+  // Front wing
+  const frontDiff = current.frontWingAngle - optimal.frontWingAngle;
+  const frontDir = hint(frontDiff, 1);
+  if (frontDir !== 'good') {
     const reason = frontDiff > 0
-      ? 'You have too much front wing — extra drag is costing you on the straights'
-      : 'More front wing will improve turn-in grip and front-end balance';
-    recommendations.push(`${dir} front wing angle by ${Math.abs(frontDiff)}°. ${reason}.`);
-    paramHints.push({ param: 'Front Wing', current: current.frontWingAngle, optimal: optimal.frontWingAngle, unit: '°', impact: 'Downforce vs drag balance' });
+      ? 'Extra front wing adds drag — you\'re losing time on the straights'
+      : 'Not enough front wing — the car will understeer into corners';
+    paramHints.push({ param: 'Front Wing', direction: frontDir, reason, teachingTip: 'Front wing mainly affects turn-in grip and front-end drag. More angle = more grip but more drag.' });
+  } else {
+    paramHints.push({ param: 'Front Wing', direction: 'good', reason: 'Good front-end balance', teachingTip: 'Front wing mainly affects turn-in grip and front-end drag.' });
   }
 
-  if (Math.abs(rearDiff) >= 2) {
-    const dir = rearDiff > 0 ? 'Reduce' : 'Increase';
+  // Rear wing
+  const rearDiff = current.rearWingAngle - optimal.rearWingAngle;
+  const rearDir = hint(rearDiff, 1);
+  if (rearDir !== 'good') {
     const reason = rearDiff > 0
-      ? 'Too much rear wing creates excessive drag — trim it for better straight speed'
+      ? 'Too much rear wing — massive drag penalty on the straights'
       : isHighDF
-        ? 'This track needs more rear downforce for traction out of slow corners'
-        : 'A bit more rear wing will help stability in the fast sections';
-    recommendations.push(`${dir} rear wing angle by ${Math.abs(rearDiff)}°. ${reason}.`);
-    paramHints.push({ param: 'Rear Wing', current: current.rearWingAngle, optimal: optimal.rearWingAngle, unit: '°', impact: 'Biggest single factor for lap time' });
+        ? 'This twisty track needs more rear grip for traction out of slow corners'
+        : 'A bit more rear wing would help stability through the fast sweepers';
+    paramHints.push({ param: 'Rear Wing', direction: rearDir, reason, teachingTip: 'Rear wing is the BIGGEST aero trade-off. It controls rear grip vs straight-line speed. The ideal angle depends on how many corners vs straights the track has.' });
+  } else {
+    paramHints.push({ param: 'Rear Wing', direction: 'good', reason: 'Rear aero well balanced for this track', teachingTip: 'Rear wing is the biggest aero trade-off — corner grip vs straight speed.' });
   }
 
-  // Tire pressure
-  if (Math.abs(current.tirePressureFront - 23) > 1) {
-    recommendations.push(`Front tire pressure is ${current.tirePressureFront > 23 ? 'too high' : 'too low'}. Move toward 23 PSI for peak mechanical grip.`);
-    paramHints.push({ param: 'Front Tire PSI', current: current.tirePressureFront, optimal: 23, unit: ' PSI', impact: 'Grip drops off sharply away from 23 PSI' });
-  }
-  if (Math.abs(current.tirePressureRear - 23) > 1) {
-    recommendations.push(`Rear tire pressure is ${current.tirePressureRear > 23 ? 'too high' : 'too low'}. 23 PSI is the sweet spot for rear grip.`);
-    paramHints.push({ param: 'Rear Tire PSI', current: current.tirePressureRear, optimal: 23, unit: ' PSI', impact: 'Grip drops off sharply away from 23 PSI' });
-  }
+  // Tire pressures
+  const frontPSIDiff = current.tirePressureFront - 23;
+  const frontPSIDir = hint(frontPSIDiff, 1);
+  paramHints.push({
+    param: 'Front Tire PSI',
+    direction: frontPSIDir,
+    reason: frontPSIDir === 'good' ? 'In the grip sweet spot' : frontPSIDiff > 0 ? 'Pressure too high — contact patch is shrinking, losing grip' : 'Pressure too low — tire is deforming too much, losing response',
+    teachingTip: 'Tire grip follows a curve — there\'s a sweet spot where the rubber contact patch is maximised. Too high or too low and grip drops off sharply.',
+  });
+  const rearPSIDiff = current.tirePressureRear - 23;
+  const rearPSIDir = hint(rearPSIDiff, 1);
+  paramHints.push({
+    param: 'Rear Tire PSI',
+    direction: rearPSIDir,
+    reason: rearPSIDir === 'good' ? 'In the grip sweet spot' : rearPSIDiff > 0 ? 'Pressure too high — rear end is sliding on corner exit' : 'Pressure too low — rear tire overheating from excess deformation',
+    teachingTip: 'Same sweet-spot principle as the fronts. Think about it: the rubber needs to be in full contact with the road surface.',
+  });
 
   // Suspension
-  if (Math.abs(current.suspensionStiffness - 50) > 10) {
-    recommendations.push(`Suspension at ${current.suspensionStiffness}% is ${current.suspensionStiffness > 50 ? 'too stiff — the car is skipping over bumps' : 'too soft — the car is wallowing'}. 50% gives the best mechanical platform.`);
-    paramHints.push({ param: 'Suspension', current: current.suspensionStiffness, optimal: 50, unit: '%', impact: 'Affects mechanical grip in all corners' });
-  }
+  const suspDiff = current.suspensionStiffness - 50;
+  const suspDir = hint(suspDiff, 8);
+  paramHints.push({
+    param: 'Suspension',
+    direction: suspDir,
+    reason: suspDir === 'good' ? 'Good mechanical platform' : suspDiff > 0 ? 'Too stiff — car is bouncing over kerbs and bumps, losing contact with the track' : 'Too soft — car is wallowing through direction changes, slow to respond',
+    teachingTip: 'Suspension controls how the car\'s weight transfers. Too stiff = the car skips. Too soft = the car rolls excessively. You want a balance that keeps the tires loaded evenly.',
+  });
 
   // Brake balance
-  if (Math.abs(current.brakeBalance - 57) > 3) {
-    const issue = current.brakeBalance > 57
-      ? 'Too much front bias — you\'ll lock the fronts and understeer into corners'
-      : 'Too much rear bias — the rear will lock up and snap around on you';
-    recommendations.push(`Brake balance at ${current.brakeBalance}% is off. ${issue}. Target 57%.`);
-    paramHints.push({ param: 'Brake Balance', current: current.brakeBalance, optimal: 57, unit: '% front', impact: 'Affects braking stability and corner entry' });
-  }
+  const brakeDiff = current.brakeBalance - 57;
+  const brakeDir = hint(brakeDiff, 2);
+  paramHints.push({
+    param: 'Brake Balance',
+    direction: brakeDir,
+    reason: brakeDir === 'good' ? 'Stable braking zone' : brakeDiff > 0 ? 'Too much front bias — front tires lock first, car understeers into corners' : 'Too much rear bias — rear locks up, car snaps around under braking',
+    teachingTip: 'Under braking, weight shifts forward. The ideal brake balance matches the car\'s weight distribution so both axles reach their grip limit together. Think F=ma and where the mass is!',
+  });
 
   // Fuel
-  if (current.fuelLoad > 20) {
-    recommendations.push(`Running ${current.fuelLoad}kg fuel. Every extra kg costs ~0.03s per lap. For a qualifying-style lap, go as light as possible.`);
-    paramHints.push({ param: 'Fuel Load', current: current.fuelLoad, optimal: 5, unit: ' kg', impact: `${round((current.fuelLoad - 5) * 0.03, 2)}s lost per lap from extra weight` });
-  }
+  const fuelDir: HintDirection = current.fuelLoad <= 15 ? 'good' : current.fuelLoad <= 40 ? 'down-small' : 'down-big';
+  paramHints.push({
+    param: 'Fuel Load',
+    direction: fuelDir,
+    reason: fuelDir === 'good' ? 'Light and fast' : `Carrying ${current.fuelLoad}kg — every extra kg costs ~0.03s per lap from F=ma`,
+    teachingTip: 'More mass means more inertia (F=ma). A heavier car accelerates slower, brakes longer, and has less grip in corners. For a qualifying lap, go as light as possible!',
+  });
 
   // ERS
-  if (current.ersDeployMode < 4) {
-    recommendations.push(`ERS deploy at ${current.ersDeployMode}/5. Crank it up! More ERS means up to 120kW extra power on straights.`);
-    paramHints.push({ param: 'ERS Deploy', current: current.ersDeployMode, optimal: 5, unit: '/5', impact: 'Free speed on straights' });
+  const ersDir: HintDirection = current.ersDeployMode >= 4 ? 'good' : current.ersDeployMode >= 2 ? 'up-small' : 'up-big';
+  paramHints.push({
+    param: 'ERS Deploy',
+    direction: ersDir,
+    reason: ersDir === 'good' ? 'Maximum electrical boost' : 'You\'re leaving free power on the table — ERS adds up to 120kW on straights',
+    teachingTip: 'The MGU-K recovers braking energy and redeploys it as extra power. Higher deploy = more straight-line speed. It\'s essentially free energy from the kinetic energy you\'d otherwise waste as heat in the brakes.',
+  });
+
+  // Overall assessment — no exact numbers, just qualitative guidance
+  if (gap <= 0.3) {
+    recommendations.push('Incredible setup! You\'re right on the limit — that\'s race-winning pace. A real engineer would be proud of this.');
+  } else if (gap <= 1.0) {
+    recommendations.push('Solid work! You\'re close to the optimum. Small refinements will close the gap — check the amber indicators below.');
+  } else if (gap <= 3.0) {
+    recommendations.push(`There\'s time to find. Focus on the red indicators first — those are costing you the most. Think about what this track demands: ${isHighDF ? 'lots of corners need grip' : 'long straights need low drag'}.`);
+  } else {
+    recommendations.push('Big gap to the optimum — start with the parameters showing red arrows. Ask yourself: does this track need downforce or top speed?');
   }
 
-  // Overall assessment
-  if (gap <= 0.3) {
-    recommendations.unshift('🟢 Excellent! You\'re within 0.3s of the theoretical optimum — that\'s a world-class setup!');
-  } else if (gap <= 1.0) {
-    recommendations.unshift(`🟡 Good work! ${gap}s off optimal. A few tweaks and you'll be right on the pace.`);
-  } else if (gap <= 3.0) {
-    recommendations.unshift(`🟠 ${gap}s off optimal pace. Focus on the biggest gains first — wing angles and tire pressures.`);
+  // Track-specific educational tip
+  if (isHighDF) {
+    recommendations.push(`${track.name} has ${slowCorners + fastCorners} corners and ${straights} straights — think about which matters more for total lap time.`);
   } else {
-    recommendations.unshift(`🔴 ${gap}s off optimal. Your setup needs significant changes — start with the highlighted parameters below.`);
+    recommendations.push(`${track.name} has ${straights} straights and ${slowCorners + fastCorners} corners — where do you spend the most time?`);
   }
 
   return { recommendations, paramHints };
