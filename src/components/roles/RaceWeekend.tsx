@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { tracks, getTrack } from '../../data/tracks';
-import { simulateLap, defaultSetup } from '../../utils/simulation';
+import { simulateLap, defaultSetup, findOptimalSetup, getSetupRecommendations } from '../../utils/simulation';
 import { tireDegradation, pitStopLoss, round } from '../../utils/physics';
 import { XP_REWARDS } from '../../utils/xp';
 import type { CarSetup } from '../../types';
@@ -41,8 +41,17 @@ export default function RaceWeekend() {
   const [xpPopup, setXpPopup] = useState<number | null>(null);
   const [raceResult, setRaceResult] = useState<{ position: number; totalTime: number; laps: number } | null>(null);
   const [qualTime, setQualTime] = useState<number | null>(null);
+  const [showOptimal, setShowOptimal] = useState(false);
+  const [optimalData, setOptimalData] = useState<{ setup: import('../../types').CarSetup; lapTime: number; sectorTimes: number[] } | null>(null);
 
   const track = getTrack(trackId);
+
+  // Compute optimal when track changes
+  const computeOptimal = useCallback(() => {
+    if (!optimalData || optimalData.setup.trackId !== trackId) {
+      setOptimalData(findOptimalSetup(track));
+    }
+  }, [trackId, track, optimalData]);
   const sessionIdx = SESSION_ORDER.indexOf(session);
 
   const runLap = useCallback((sessionName: string, comp: TireCompound) => {
@@ -81,9 +90,13 @@ export default function RaceWeekend() {
     for (let i = 0; i < 3; i++) {
       laps.push(runLap(sessionName, compound));
     }
+    // Compute optimal after first FP run
+    if (!optimalData) {
+      setOptimalData(findOptimalSetup(track));
+    }
     dispatch({ type: 'ADD_XP', amount: XP_REWARDS.SIMULATION_RUN });
     setXpPopup(XP_REWARDS.SIMULATION_RUN);
-  }, [session, compound, runLap, dispatch]);
+  }, [session, compound, runLap, dispatch, optimalData, track]);
 
   const runQualifying = useCallback(() => {
     // Q1, Q2, Q3 - one lap each on softs
@@ -279,6 +292,94 @@ export default function RaceWeekend() {
                 </div>
               )}
 
+              {/* Setup Coach after FP runs */}
+              {fpLaps.length > 0 && optimalData && (() => {
+                const currentBest = Math.min(...fpLaps.map(l => l.lapTime));
+                const gap = round(currentBest - optimalData.lapTime, 3);
+                const { recommendations, paramHints } = getSetupRecommendations(setup, optimalData.setup, currentBest, optimalData.lapTime, track);
+                return (
+                  <div className="bg-racing-panel border border-accent-cyan/30 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-white font-bold">🎯 Engineer Analysis</h4>
+                      <span className={`text-xs font-mono font-bold ${gap <= 0.5 ? 'text-accent-green' : gap <= 1.5 ? 'text-accent-amber' : 'text-racing-red'}`}>
+                        {gap > 0 ? '+' : ''}{gap}s to optimal
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 mb-3">
+                      {recommendations.slice(0, 4).map((rec, i) => (
+                        <div key={i} className={`text-sm ${i === 0 ? 'font-semibold text-slate-200' : 'text-slate-400'}`}>
+                          {i > 0 && <span className="text-accent-cyan mr-1">▸</span>}{rec}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick parameter hints */}
+                    {paramHints.length > 0 && (
+                      <div className="bg-slate-900 rounded-lg p-3 mb-3">
+                        <div className="text-xs font-bold text-slate-500 mb-1.5">SUGGESTED CHANGES</div>
+                        {paramHints.slice(0, 4).map((h, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                            <span className="text-slate-300">{h.param}</span>
+                            <span>
+                              <span className="text-slate-500 font-mono">{h.current}{h.unit}</span>
+                              <span className="text-slate-500 mx-1">→</span>
+                              <span className="text-accent-green font-mono font-bold">{h.optimal}{h.unit}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSetup(s => ({
+                            ...s,
+                            frontWingAngle: optimalData.setup.frontWingAngle,
+                            rearWingAngle: optimalData.setup.rearWingAngle,
+                            tirePressureFront: 23,
+                            tirePressureRear: 23,
+                            suspensionStiffness: 50,
+                            brakeBalance: 57,
+                          }));
+                        }}
+                        className="flex-1 py-2 bg-accent-green/20 text-accent-green rounded-lg font-semibold text-xs hover:bg-accent-green/30 transition-colors"
+                      >
+                        ⚡ Apply Recommended Setup
+                      </button>
+                      <button
+                        onClick={() => setShowOptimal(!showOptimal)}
+                        className="flex-1 py-2 bg-slate-700 text-white rounded-lg font-semibold text-xs hover:bg-slate-600 transition-colors"
+                      >
+                        {showOptimal ? '🙈 Hide' : '👀 Show'} Optimal Values
+                      </button>
+                    </div>
+
+                    {showOptimal && (
+                      <div className="mt-2 grid grid-cols-4 gap-1.5 text-xs">
+                        <div className="bg-slate-800 rounded p-1.5 text-center">
+                          <div className="text-slate-500">F.Wing</div>
+                          <div className="text-accent-green font-mono font-bold">{optimalData.setup.frontWingAngle}°</div>
+                        </div>
+                        <div className="bg-slate-800 rounded p-1.5 text-center">
+                          <div className="text-slate-500">R.Wing</div>
+                          <div className="text-accent-green font-mono font-bold">{optimalData.setup.rearWingAngle}°</div>
+                        </div>
+                        <div className="bg-slate-800 rounded p-1.5 text-center">
+                          <div className="text-slate-500">PSI</div>
+                          <div className="text-accent-green font-mono font-bold">23/23</div>
+                        </div>
+                        <div className="bg-slate-800 rounded p-1.5 text-center">
+                          <div className="text-slate-500">Target</div>
+                          <div className="text-accent-green font-mono font-bold">{optimalData.lapTime}s</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <button onClick={advanceSession} className="w-full py-2.5 bg-slate-700 text-white rounded-xl font-semibold text-sm hover:bg-slate-600 transition-colors">
                 Move to {SESSION_INFO[SESSION_ORDER[sessionIdx + 1]].title} →
               </button>
@@ -433,6 +534,35 @@ export default function RaceWeekend() {
                   </div>
                 </div>
 
+                {/* Setup comparison in debrief */}
+                {optimalData && (
+                  <div className="bg-slate-900 rounded-lg p-4 mb-4 border border-accent-cyan/20">
+                    <h4 className="text-accent-cyan font-bold text-sm mb-2">Setup vs Optimal</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                      {[
+                        { label: 'Front Wing', yours: `${setup.frontWingAngle}°`, opt: `${optimalData.setup.frontWingAngle}°` },
+                        { label: 'Rear Wing', yours: `${setup.rearWingAngle}°`, opt: `${optimalData.setup.rearWingAngle}°` },
+                        { label: 'Tire PSI', yours: `${setup.tirePressureFront}/${setup.tirePressureRear}`, opt: '23/23' },
+                        { label: 'Suspension', yours: `${setup.suspensionStiffness}%`, opt: '50%' },
+                        { label: 'Brake Bal.', yours: `${setup.brakeBalance}%`, opt: '57%' },
+                        { label: 'ERS', yours: `${setup.ersDeployMode}/5`, opt: '5/5' },
+                      ].map(row => (
+                        <div key={row.label} className="flex justify-between bg-slate-800 rounded px-2 py-1">
+                          <span className="text-slate-400">{row.label}</span>
+                          <span>
+                            <span className={row.yours === row.opt ? 'text-accent-green' : 'text-accent-amber'}>{row.yours}</span>
+                            <span className="text-slate-600 mx-1">/</span>
+                            <span className="text-accent-green">{row.opt}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      <span className="text-accent-amber">Your value</span> / <span className="text-accent-green">Optimal value</span> — matching values shown in green
+                    </p>
+                  </div>
+                )}
+
                 <div className="bg-slate-900 rounded-lg p-4">
                   <h4 className="text-accent-amber font-bold text-sm mb-2">What Real Engineers Do Next</h4>
                   <div className="space-y-1 text-sm text-slate-400">
@@ -510,6 +640,59 @@ export default function RaceWeekend() {
               </div>
             </div>
           </div>
+
+          {/* Optimal Target */}
+          {optimalData && (
+            <div className="bg-racing-panel border border-accent-green/20 rounded-xl p-4">
+              <h3 className="text-white font-bold mb-2">🎯 Target Pace</h3>
+              <div className="text-center mb-2">
+                <div className="text-xs text-slate-500">Optimal Lap Time</div>
+                <div className="text-2xl font-mono font-black text-accent-green">{optimalData.lapTime}s</div>
+              </div>
+              {bestLap && (
+                <div className="text-center">
+                  <div className="text-xs text-slate-500">Your Best</div>
+                  <div className={`text-lg font-mono font-bold ${bestLap <= optimalData.lapTime + 0.5 ? 'text-accent-green' : 'text-accent-amber'}`}>
+                    {bestLap.toFixed(3)}s
+                  </div>
+                  <div className={`text-xs font-mono mt-0.5 ${bestLap - optimalData.lapTime <= 0.5 ? 'text-accent-green' : 'text-accent-amber'}`}>
+                    {bestLap > optimalData.lapTime ? `+${round(bestLap - optimalData.lapTime, 3)}s gap` : '✅ On target!'}
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => { computeOptimal(); setShowOptimal(!showOptimal); }}
+                className="w-full mt-2 py-1.5 bg-slate-700 text-white rounded-lg text-xs font-semibold hover:bg-slate-600 transition-colors"
+              >
+                {showOptimal ? 'Hide' : 'Show'} Optimal Setup
+              </button>
+              {showOptimal && (
+                <div className="mt-2 space-y-1 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Front Wing</span><span className="text-accent-green font-mono">{optimalData.setup.frontWingAngle}°</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Rear Wing</span><span className="text-accent-green font-mono">{optimalData.setup.rearWingAngle}°</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Tire PSI</span><span className="text-accent-green font-mono">23/23</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Suspension</span><span className="text-accent-green font-mono">50%</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Brake Bal.</span><span className="text-accent-green font-mono">57%</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Fuel</span><span className="text-accent-green font-mono">5kg</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>ERS</span><span className="text-accent-green font-mono">5/5</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Engineer Tips */}
           <div className="bg-racing-panel border border-racing-border rounded-xl p-4">
